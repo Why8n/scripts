@@ -16,7 +16,11 @@ class Cmder(object):
     def __run(file, args=None, *, isAdmin=False):
         import ctypes
         return ctypes.windll.shell32.ShellExecuteW(
-            None, 'runas' if isAdmin else 'open', file, args, None, 1)
+            None,
+            'runas' if isAdmin else 'open',
+            file,
+            args if not isinstance(args, (list, tuple)) else ' '.join(args),
+            None, 1)
 
     @staticmethod
     def run(file, *, args=None):
@@ -33,15 +37,33 @@ class NickNameParser(object):
     [{
         "program" : executable program absolute path,
         "nickname" : nickname for program,
-        "args" : args for program
+        "defaultArgs" : args for program
     },]
     '''
 
-    def __init__(self):
-        self.argsParser = ArgsParser()
+    def parse(self, argsParser):
+        progInfo = self.__nickname2program(argsParser.nickname, argsParser.configFile)
+        prog = progInfo.get('program', argsParser.nickname)
+        print(prog)
+        args = argsParser.args or progInfo.get('defaultArgs')
+        run = Cmder.runAsAdmin if argsParser.isAdmin else Cmder.run
+        run(prog, args=args)
 
-    def parse(nickname):
-        pass
+    def __nickname2program(self, nickname, configFile):
+        try:
+            for info in self.__loadConfig(configFile):
+                if info.get('nickname') == nickname:
+                    return info
+        except Exception as e:
+            print(e)
+        return {'program': nickname}
+
+    def __loadConfig(self, configFile=DEFAULT_CONFIGURE_FILE):
+        with open(configFile, 'rt', encoding='utf-8') as jsonFile:
+            import json
+            nicknameConfig = json.load(jsonFile)
+
+        return nicknameConfig
 
 
 class ArgsParser(object):
@@ -50,11 +72,12 @@ class ArgsParser(object):
         parser = argparse.ArgumentParser()
         parser.add_argument(
             'nickname', help='nickname for executable program')
-        parser.add_argument(
-            'args', nargs=argparse.REMAINDER, help='arguments pass to the executable program')
         parser.add_argument('-f', '--file', nargs='?', metavar='configure-file', dest='configFile',
                             default=DEFAULT_CONFIGURE_FILE,
-                            const=DEFAULT_CONFIGURE_FILE)
+                            const=DEFAULT_CONFIGURE_FILE, help='set configure file (json format)')
+        parser.add_argument('--admin', action='store_true', help='run as Administrator')
+        parser.add_argument(
+            'args', nargs='*', help='arguments pass to the executable program')
         self._args = parser.parse_args(args)
 
     @property
@@ -69,10 +92,23 @@ class ArgsParser(object):
     def configFile(self):
         return self._args.configFile
 
+    @property
+    def isAdmin(self):
+        return self._args.admin
+
 
 def main():
-    Cmder.run('timeout', args='/t 10')
+    NickNameParser().parse(ArgsParser())
+
+
+def test():
+    args = ArgsParser()
+    print('admin', args.isAdmin)
+    print('nickname', args.nickname)
+    print('file', args.configFile)
+    print('args', args.args)
 
 
 if __name__ == '__main__':
+    # test()
     main()
