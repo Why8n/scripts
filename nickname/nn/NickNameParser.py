@@ -50,10 +50,13 @@ class NickNameParser(object):
         return program, args, self.argsParser.isAdmin
 
     def __nickname2program(self, nickname, configFile):
-        jsonConfig = self.__loadConfig(configFile)
         default = {'program': nickname}
-        if jsonConfig:
-            return jsonConfig.get(nickname, default)
+        try:
+            jsonConfig = self.__loadConfig(configFile)
+            if jsonConfig:
+                return jsonConfig.get(nickname, default)
+        except Exception as e:
+            print(e)
         return default
 
     def __loadConfig(self, configFile=DEFAULT_CONFIGURE_FILE):
