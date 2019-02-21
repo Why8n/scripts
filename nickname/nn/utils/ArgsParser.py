@@ -2,7 +2,6 @@ from .. import DEFAULT_CONFIGURE_FILE
 
 class ArgsParser(object):
     def __init__(self, args=None):
-        print(args)
         import argparse
         parser = argparse.ArgumentParser()
         parser.add_argument(

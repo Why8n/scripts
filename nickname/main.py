@@ -6,8 +6,8 @@ def main():
     from nn.NickNameParser import NickNameParser, gArgs
     from nn import Cmder
     program, args, isAdmin = NickNameParser(gArgs).parse()
-    print(program, args, isAdmin)
-    (Cmder.runAsAdmin if isAdmin else Cmder.run)(program, args=args)
+    print('program:{program}, args:{args}, isAdmin:{isAdmin}'.format(program=program, args=args, isAdmin=isAdmin))
+    program and (Cmder.runAsAdmin if isAdmin else Cmder.run)(program, args=args)
 
 
 def test():
