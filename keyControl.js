@@ -9,83 +9,95 @@
 // @grant        none
 // ==/UserScript==
 
+(function () {
+  "use strict";
+  main();
 
-(function() {
-    'use strict';
-    const KEY_CODE_ENTER = 13;
-    // hostname: www.baidu.com
-    const curUrl = window.location.hostname;
-    let isFullScreen = false;
+  const KEY_CODE_ENTER = 13;
+  const KEY_CODE_ESCAPE = 27;
 
-    const excludes = new Set();
-    excludes.add('www.baidu.com');
+  let isFullscreen = false;
+  const hostUrlActions = {
+    "www.bilibili.com": () => {
+      document.querySelector("[data-text=进入全屏]").click();
+    },
+    "www.youtube.com": () => {
+      document.querySelector(".ytp-fullscreen-button.ytp-button").click();
+    },
+  };
+  const excluded = new Set();
+  excluded.add("www.baidu.com");
+  excluded.add("input");
 
-    function isExcluded(url) {
-        return excludes.has(url);
-    }
+  function excludeTag(tagName) {
+    return excluded.has(tagName.toLowerCase());
+  }
 
-      const videoEleofDomain = {
-        'www.youtube.com': () => {
-            const url = window.location.href;
-            if(!url.includes('search_query')) {
-                  document.querySelector('.ytp-fullscreen-button.ytp-button').click();
-             }
-        },
-        'www.bilibili.com': () => { document.querySelector('[data-text=进入全屏]').click(); }
-    };
+  function excludeHostname(hostname) {
+    return excluded.has(hostname);
+  }
 
+  function main() {
+    window.addEventListener("keyup", (event) => {
+      const hostname = window.location.hostname;
+      if (excludeHostname(hostname)) {
+        return;
+      }
+      doKeyEvent(event);
+    });
+  }
 
-    function doKeyEvent(event) {
-        console.log('doKeyEvent==>',event);
-        if(event.keyCode == KEY_CODE_ENTER) {
-            console.log("detect key: enter");
-            if(isExcluded(window.location.hostname)) {
-               return;
-            }
-            let action = videoEleofDomain[curUrl];
-            if(action){
-                action();
-                return;
-            }
-            let ele = document.querySelector('video');
-            console.log('auto search first Video: ',ele);
-            isFullScreen ? exitFullScreen().apply(document) : enterFullScreen().apply(ele);
-            isFullScreen = !isFullScreen;
-        }
-    }
-
+  function handleKeyEnter(event) {
     //进入全屏
-function enterFullScreen() {
-    var ele = document.documentElement;
-    if (ele.requestFullscreen) {
+    function enterFullScreen() {
+      var ele = document.documentElement;
+      if (ele.requestFullscreen) {
         return ele.requestFullscreen;
-    } else if (ele.mozRequestFullScreen) {
+      } else if (ele.mozRequestFullScreen) {
         return ele.mozRequestFullScreen;
-    } else if (ele.webkitRequestFullScreen) {
-       return ele.webkitRequestFullScreen;
+      } else if (ele.webkitRequestFullScreen) {
+        return ele.webkitRequestFullScreen;
+      }
     }
-}
-//退出全屏
-function exitFullScreen() {
-    var de = document;
-    if (de.exitFullscreen) {
+    //退出全屏
+    function exitFullScreen() {
+      var de = document;
+      if (de.exitFullscreen) {
         return de.exitFullscreen;
-    } else if (de.mozCancelFullScreen) {
+      } else if (de.mozCancelFullScreen) {
         return de.mozCancelFullScreen;
-    } else if (de.webkitCancelFullScreen) {
+      } else if (de.webkitCancelFullScreen) {
         return de.webkitCancelFullScreen;
-    }
-}
-
-    function main() {
-        window.addEventListener('keyup',(event) => {
-            doKeyEvent(event);
-        });
-
+      }
     }
 
+    if (excludeTag(event.target.tagName)) {
+      console.log("exclude tag: ", event.target.tagName);
+      return;
+    }
 
+    const action = hostUrlActions[window.location.hostname];
+    if (action) {
+      action();
+      return;
+    }
 
-main();
+    const videoEle = document.querySelector("video");
+    if (videoEle) {
+      isFullscreen
+        ? exitFullScreen().apply(document)
+        : enterFullScreen().apply(videoEle);
+      isFullscreen = !isFullscreen;
+    }
+  }
 
+  function doKeyEvent(event) {
+    const keyCode = event.keyCode;
+    if (keyCode === KEY_CODE_ENTER) {
+      handleKeyEnter(event);
+    } else if (keyCode === KEY_CODE_ESCAPE) {
+      console.log("press key escape");
+      isFullscreen = false;
+    }
+  }
 })();
